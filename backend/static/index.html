@@ -250,7 +250,7 @@
                         document.body.classList.add('bg-gray-100', 'text-gray-900');
                     } else {
                         document.documentElement.classList.add('dark');
-                        document.body.classList.add('bg-gray-900', 'text-white');
+                        document.body.classList.add('bg-black', 'text-white');
                         document.body.classList.remove('bg-gray-100', 'text-gray-900');
                     }
                     return newMode;
@@ -377,9 +377,9 @@
                     <style>
                         ${`
                             .react-flow__node {
-                                background: ${darkMode ? '#1e293b' : '#ffffff'};
-                                color: ${darkMode ? '#ffffff' : '#1e293b'};
-                                border: 1px solid ${darkMode ? '#475569' : '#e2e8f0'};
+                                background: #ffffff;
+                                color: #1e293b;
+                                border: 1px solid ${darkMode ? '#333333' : '#e2e8f0'};
                                 border-radius: 8px;
                                 box-shadow: ${darkMode ? 'none' : '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)'};
                                 width: auto;
@@ -396,7 +396,7 @@
                     </style>
                     <${ReactFlowProvider}>
                         <!-- Left Sidebar: Components -->
-                        <aside className=${`w-64 flex flex-col p-4 z-10 border-r ${darkMode ? 'bg-slate-800/80 border-slate-700 text-white' : 'bg-white/80 border-gray-200 text-slate-800'} backdrop-blur-md transition-colors duration-300`}>
+                        <aside className=${`w-64 flex flex-col p-4 z-10 border-r ${darkMode ? 'bg-black border-neutral-800 text-white' : 'bg-white/80 border-gray-200 text-slate-800'} backdrop-blur-md transition-colors duration-300`}>
                             <div className="flex justify-between items-center mb-6">
                                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">Visual PyTorch</h1>
                                 <button onClick=${toggleTheme} className="p-2 rounded hover:bg-gray-500/20 text-xl" title="Toggle Theme">
@@ -420,7 +420,7 @@
                                         <div className="grid grid-cols-1 gap-2">
                                         ${layers.map(layer => html`
                                             <div 
-                                                className=${`px-3 py-2 rounded cursor-grab transition border text-sm font-medium flex items-center shadow-sm ${darkMode ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-200'}`} 
+                                                className=${`px-3 py-2 rounded cursor-grab transition border text-sm font-medium flex items-center shadow-sm ${darkMode ? 'bg-slate-700 text-white border-slate-600 hover:bg-slate-600' : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-200'}`} 
                                                 draggable=${true}
                                                 onDragStart=${(event) => event.dataTransfer.setData('application/reactflow', JSON.stringify(layer))}
                                             >
@@ -455,10 +455,10 @@
                                 onDrop=${onDrop}
                                 onDragOver=${onDragOver}
                                 fitView
-                                className=${darkMode ? 'bg-slate-900' : 'bg-gray-50'}
+                                className=${darkMode ? 'bg-black' : 'bg-gray-50'}
                             >
-                                <${Background} color=${darkMode ? '#334155' : '#cbd5e1'} gap=${16} />
-                                <${Controls} className=${darkMode ? 'bg-slate-800 text-white border-slate-700' : 'bg-white text-gray-900 border-gray-200'} />
+                                <${Background} color=${darkMode ? '#333333' : '#cbd5e1'} gap=${16} />
+                                <${Controls} className=${darkMode ? 'bg-black text-white border-neutral-800' : 'bg-white text-gray-900 border-gray-200'} />
                             </${ReactFlow}>
 
                             <!-- Recycle Bin -->
@@ -473,7 +473,7 @@
                         
                         <!-- Right Sidebar: Properties -->
                         ${selectedNode && html`
-                            <aside className=${`w-80 flex flex-col p-6 z-10 border-l overflow-y-auto ${darkMode ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white/90 border-gray-200 text-slate-800'} backdrop-blur-md transition-all shadow-xl`}>
+                            <aside className=${`w-80 flex flex-col p-4 z-10 border-l ${darkMode ? 'bg-black border-neutral-800 text-white' : 'bg-white/90 border-gray-200 text-slate-800'} backdrop-blur-md transition-all duration-300 overflow-y-auto shadow-xl`}>
                                 <div className="flex justify-between items-center mb-6 border-b pb-4 ${darkMode ? 'border-slate-700' : 'border-gray-200'}">
                                     <h2 className="font-bold text-lg">Properties</h2>
                                     <button onClick=${() => setSelectedNodeId(null)} className="opacity-50 hover:opacity-100 p-1 hover:bg-red-500/20 rounded">✕</button>
