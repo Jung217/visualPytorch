@@ -25,31 +25,12 @@
         }
     </script>
     <style>
-        body {
-            background-color: #0f172a;
-            color: white;
-        }
+        /* Custom scrollbar handling for dark mode compatibility */
 
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .react-flow__node {
-            background: #1e293b;
-            color: white;
-            border: 1px solid #475569;
-            border-radius: 8px;
-        }
-
-        .react-flow__handle {
-            background: #3b82f6;
-        }
-
-        /* Scrollbar styles */
+        /* Default (Light Mode) Scrollbars */
         ::-webkit-scrollbar {
             width: 8px;
+            height: 8px;
         }
 
         ::-webkit-scrollbar-track {
@@ -57,17 +38,30 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #475569;
+            background: #cbd5e1;
+            /* slate-300 */
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+            /* slate-400 */
+        }
+
+        /* Dark Mode Scrollbars */
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+            /* slate-600 */
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
             background: #64748b;
+            /* slate-500 */
         }
     </style>
 </head>
 
-<body class="bg-gray-900 text-white transition-colors duration-300">
+<body class="bg-black text-white transition-colors duration-300">
     <div id="root"></div>
 
     <script type="module">
@@ -80,43 +74,69 @@
 
         // --- Constants & Data ---
         const LAYER_DEFINITIONS = {
+            "Input / Output": [
+                { type: 'input', label: 'Input', description: 'Input layer for the network.', params: { label: 'Input', shape: '(B, C, H, W)' } },
+                { type: 'output', label: 'Output', description: 'Output layer for the network.', params: { label: 'Output' } },
+            ],
             "Convolution & Pooling": [
-                { type: 'nn.Conv2d', label: 'Conv2d', params: { in_channels: 1, out_channels: 32, kernel_size: 3, padding: 1 } },
-                { type: 'nn.MaxPool2d', label: 'MaxPool2d', params: { kernel_size: 2, stride: 2 } },
-                { type: 'nn.AvgPool2d', label: 'AvgPool2d', params: { kernel_size: 2, stride: 2 } },
+                { type: 'nn.Conv2d', label: 'Conv2d', description: '2D Convolutional layer.', params: { in_channels: 1, out_channels: 32, kernel_size: 3, padding: 1 } },
+                { type: 'nn.MaxPool2d', label: 'MaxPool2d', description: '2D Max pooling layer.', params: { kernel_size: 2, stride: 2 } },
+                { type: 'nn.AvgPool2d', label: 'AvgPool2d', description: '2D Average pooling layer.', params: { kernel_size: 2, stride: 2 } },
             ],
             "Linear & Normalization": [
-                { type: 'nn.Linear', label: 'Linear', params: { in_features: 32, out_features: 10 } },
-                { type: 'nn.BatchNorm2d', label: 'BatchNorm2d', params: { num_features: 32 } },
-                { type: 'nn.LayerNorm', label: 'LayerNorm', params: { normalized_shape: 512 } },
-                { type: 'nn.Dropout', label: 'Dropout', params: { p: 0.5 } },
+                { type: 'nn.Linear', label: 'Linear', description: 'Linear transformation layer.', params: { in_features: 32, out_features: 10 } },
+                { type: 'nn.BatchNorm2d', label: 'BatchNorm2d', description: 'Batch Normalization over a 4D input.', params: { num_features: 32 } },
+                { type: 'nn.LayerNorm', label: 'LayerNorm', description: 'Layer Normalization.', params: { normalized_shape: 512 } },
+                { type: 'nn.Dropout', label: 'Dropout', description: 'Randomly zeroes some elements.', params: { p: 0.5 } },
             ],
             "Transformers": [
-                { type: 'nn.Embedding', label: 'Embedding', params: { num_embeddings: 1000, embedding_dim: 512 } },
-                { type: 'nn.TransformerEncoderLayer', label: 'TransformerEncoderLayer', params: { d_model: 512, nhead: 8, dim_feedforward: 2048 } },
-                { type: 'nn.TransformerDecoderLayer', label: 'TransformerDecoderLayer', params: { d_model: 512, nhead: 8, dim_feedforward: 2048 } },
-                { type: 'nn.Transformer', label: 'Transformer', params: { d_model: 512, nhead: 8, num_encoder_layers: 6, num_decoder_layers: 6 } },
+                { type: 'nn.Embedding', label: 'Embedding', description: 'Simple lookup table.', params: { num_embeddings: 1000, embedding_dim: 512 } },
+                { type: 'nn.TransformerEncoderLayer', label: 'TransformerEncoderLayer', description: 'TransformerEncoderLayer module.', params: { d_model: 512, nhead: 8, dim_feedforward: 2048 } },
+                { type: 'nn.TransformerDecoderLayer', label: 'TransformerDecoderLayer', description: 'TransformerDecoderLayer module.', params: { d_model: 512, nhead: 8, dim_feedforward: 2048 } },
+                { type: 'nn.Transformer', label: 'Transformer', description: 'A Transformer model.', params: { d_model: 512, nhead: 8, num_encoder_layers: 6, num_decoder_layers: 6 } },
             ],
             "Activations": [
-                { type: 'nn.ReLU', label: 'ReLU', params: {} },
-                { type: 'nn.Sigmoid', label: 'Sigmoid', params: {} },
-                { type: 'nn.Tanh', label: 'Tanh', params: {} },
-                { type: 'nn.Softmax', label: 'Softmax', params: { dim: 1 } },
+                { type: 'nn.ReLU', label: 'ReLU', description: 'Applies the rectified linear unit function.', params: {} },
+                { type: 'nn.Sigmoid', label: 'Sigmoid', description: 'Applies the element-wise function sigmoid(x).', params: {} },
+                { type: 'nn.Tanh', label: 'Tanh', description: 'Applies the Hyperbolic Tangent (Tanh) function.', params: {} },
+                { type: 'nn.Softmax', label: 'Softmax', description: 'Applies the Softmax function.', params: { dim: 1 } },
             ],
             "Utilities": [
-                { type: 'nn.Flatten', label: 'Flatten', params: { start_dim: 1, end_dim: -1 } },
+                { type: 'nn.Flatten', label: 'Flatten', description: 'Flattens a contiguous range of dims.', params: { start_dim: 1, end_dim: -1 } },
             ]
+        };
+
+        const TEMPLATES = {
+            "Simple CNN": {
+                description: "A classical Convolutional Neural Network for image classification.",
+                nodes: [
+                    { id: 't1', type: 'input', data: { label: 'Input', layerType: 'input', description: 'Input layer.', params: { label: 'Input', shape: '(B, 1, 28, 28)' } }, position: { x: 250, y: 50 } },
+                    { id: 't2', type: 'nn.Conv2d', data: { label: 'Conv2d', layerType: 'nn.Conv2d', description: '2D Convolution.', params: { in_channels: 1, out_channels: 32, kernel_size: 3, padding: 1 } }, position: { x: 250, y: 150 } },
+                    { id: 't3', type: 'nn.ReLU', data: { label: 'ReLU', layerType: 'nn.ReLU', description: 'Activation.', params: {} }, position: { x: 250, y: 250 } },
+                    { id: 't4', type: 'nn.MaxPool2d', data: { label: 'MaxPool2d', layerType: 'nn.MaxPool2d', description: 'Pooling.', params: { kernel_size: 2, stride: 2 } }, position: { x: 250, y: 350 } },
+                    { id: 't5', type: 'nn.Flatten', data: { label: 'Flatten', layerType: 'nn.Flatten', description: 'Flatten dimensions.', params: { start_dim: 1, end_dim: -1 } }, position: { x: 250, y: 450 } },
+                    { id: 't6', type: 'nn.Linear', data: { label: 'Linear', layerType: 'nn.Linear', description: 'Fully connected.', params: { in_features: 14 * 14 * 32, out_features: 10 } }, position: { x: 250, y: 550 } },
+                    { id: 't7', type: 'output', data: { label: 'Output', layerType: 'output', description: 'Output layer.', params: { label: 'Output' } }, position: { x: 250, y: 650 } }
+                ],
+                edges: [
+                    { id: 'e1-2', source: 't1', target: 't2' },
+                    { id: 'e2-3', source: 't2', target: 't3' },
+                    { id: 'e3-4', source: 't3', target: 't4' },
+                    { id: 'e4-5', source: 't4', target: 't5' },
+                    { id: 'e5-6', source: 't5', target: 't6' },
+                    { id: 'e6-7', source: 't6', target: 't7' }
+                ]
+            }
         };
 
         let id = 0;
         const getId = () => `dndnode_${id++}`;
 
-        const initialNodes = [
-            { id: '1', type: 'input', data: { label: 'Input (B, C, H, W)' }, position: { x: 250, y: 5 } },
-        ];
+        const initialNodes = [];
 
         function App() {
             const reactFlowWrapper = useRef(null);
+            const recycleBinRef = useRef(null);
             const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
             const [edges, setEdges, onEdgesChange] = useEdgesState([]);
             const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -125,6 +145,7 @@
             // New State for V2
             const [selectedNodeId, setSelectedNodeId] = useState(null);
             const [darkMode, setDarkMode] = useState(true);
+            const [showExamplesModal, setShowExamplesModal] = useState(false);
 
             // Toggle Dark Mode
             const toggleTheme = () => {
@@ -141,6 +162,17 @@
                     }
                     return newMode;
                 });
+            };
+
+            const loadTemplate = (templateName) => {
+                const template = TEMPLATES[templateName];
+                if (template) {
+                    setNodes(template.nodes.map(n => ({ ...n }))); // Deep copy to avoid ref issues
+                    setEdges(template.edges.map(e => ({ ...e })));
+                    setShowExamplesModal(false);
+                    // Reset ID counter to avoid collisions if user adds more nodes
+                    id = 100;
+                }
             };
 
             const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
@@ -175,11 +207,12 @@
 
                     const newNode = {
                         id: getId(),
-                        type: 'default',
+                        type: (typeData.type === 'input' || typeData.type === 'output') ? typeData.type : 'default',
                         position,
                         data: {
                             label: typeData.label,
                             layerType: typeData.type,
+                            description: typeData.description || '',
                             params: { ...typeData.params } // Clone params
                         }
                     };
@@ -188,6 +221,27 @@
                 },
                 [reactFlowInstance]
             );
+
+            const onNodeDragStop = useCallback((event, node) => {
+                const recycleBin = recycleBinRef.current;
+
+                if (recycleBin) {
+                    const binRect = recycleBin.getBoundingClientRect();
+                    const eventX = event.clientX;
+                    const eventY = event.clientY;
+
+                    // Check if drop is within the recycle bin area
+                    if (
+                        eventX >= binRect.left &&
+                        eventX <= binRect.right &&
+                        eventY >= binRect.top &&
+                        eventY <= binRect.bottom
+                    ) {
+                        setNodes((nds) => nds.filter((n) => n.id !== node.id));
+                        setSelectedNodeId(null); // Deselect if deleted
+                    }
+                }
+            }, [setNodes]);
 
             // Update parameters of selected node
             const updateNodeParams = (key, value) => {
@@ -226,10 +280,30 @@
             const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 
             return html`
-                <div className=${`flex h-screen w-screen overflow-hidden transition-colors duration-300 \${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                <div className=${`flex h-screen w-screen overflow-hidden transition-colors duration-300 ${darkMode ? 'bg-black text-white dark' : 'bg-white text-slate-800'}`}>
+                    <style>
+                        ${`
+                            .react-flow__node {
+                                background: ${darkMode ? '#1e293b' : '#ffffff'};
+                                color: ${darkMode ? '#ffffff' : '#1e293b'};
+                                border: 1px solid ${darkMode ? '#475569' : '#e2e8f0'};
+                                border-radius: 8px;
+                                box-shadow: ${darkMode ? 'none' : '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)'};
+                                width: auto;
+                                min-width: 150px;
+                                padding: 10px;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                            }
+                            .react-flow__handle {
+                                background: #3b82f6;
+                            }
+                        `}
+                    </style>
                     <${ReactFlowProvider}>
                         <!-- Left Sidebar: Components -->
-                        <aside className=${`w-64 flex flex-col p-4 z-10 border-r \${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-gray-200'} backdrop-blur-md transition-colors duration-300`}>
+                        <aside className=${`w-64 flex flex-col p-4 z-10 border-r ${darkMode ? 'bg-slate-800/80 border-slate-700 text-white' : 'bg-white/80 border-gray-200 text-slate-800'} backdrop-blur-md transition-colors duration-300`}>
                             <div className="flex justify-between items-center mb-6">
                                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">Visual PyTorch</h1>
                                 <button onClick=${toggleTheme} className="p-2 rounded hover:bg-gray-500/20 text-xl" title="Toggle Theme">
@@ -238,17 +312,25 @@
                             </div>
                             
                             <div className="flex-1 overflow-y-auto pr-2 pb-20">
+                                <div className="mb-4">
+                                     <button 
+                                        onClick=${() => setShowExamplesModal(true)}
+                                        className=${`w-full py-2 px-3 rounded text-sm font-bold flex items-center justify-center space-x-2 transition ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'}`}
+                                    >
+                                        <span>📂</span>
+                                        <span>Load Examples</span>
+                                    </button>
+                                </div>
                                 ${Object.entries(LAYER_DEFINITIONS).map(([category, layers]) => html`
                                     <div className="mb-6">
-                                        <h3 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-50 border-b pb-1 border-opacity-20 border-white">${category}</h3>
+                                        <h3 className=${`text-xs font-bold uppercase tracking-wider mb-3 opacity-50 border-b pb-1 ${darkMode ? 'border-opacity-20 border-white' : 'border-gray-200 text-gray-500'}`}>${category}</h3>
                                         <div className="grid grid-cols-1 gap-2">
                                         ${layers.map(layer => html`
                                             <div 
-                                                className=${`px-3 py-2 rounded cursor-grab transition border text-sm font-medium flex items-center shadow-sm \${darkMode ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-200'}`} 
+                                                className=${`px-3 py-2 rounded cursor-grab transition border text-sm font-medium flex items-center shadow-sm ${darkMode ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-200'}`} 
                                                 draggable=${true}
                                                 onDragStart=${(event) => event.dataTransfer.setData('application/reactflow', JSON.stringify(layer))}
                                             >
-                                                <div className=${`w-2 h-2 rounded-full mr-2 \${darkMode ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
                                                 ${layer.label}
                                             </div>
                                         `)}
@@ -274,6 +356,7 @@
                                 onEdgesChange=${onEdgesChange}
                                 onConnect=${onConnect}
                                 onNodeClick=${onNodeClick}
+                                onNodeDragStop=${onNodeDragStop}
                                 onPaneClick=${onPaneClick}
                                 onInit=${setReactFlowInstance}
                                 onDrop=${onDrop}
@@ -284,19 +367,33 @@
                                 <${Background} color=${darkMode ? '#334155' : '#cbd5e1'} gap=${16} />
                                 <${Controls} className=${darkMode ? 'bg-slate-800 text-white border-slate-700' : 'bg-white text-gray-900 border-gray-200'} />
                             </${ReactFlow}>
+
+                            <!-- Recycle Bin -->
+                            <div 
+                                ref=${recycleBinRef}
+                                className="absolute bottom-6 right-6 z-50 transition-transform hover:scale-110 cursor-pointer flex items-center justify-center w-20 h-20"
+                                title="Drag nodes here to delete"
+                            >
+                                <span className="text-6xl filter drop-shadow-lg">🗑️</span>
+                            </div>
                         </div>
                         
                         <!-- Right Sidebar: Properties -->
-                        ${selectedNode && selectedNode.type !== 'input' && html`
-                            <aside className=${`w-80 flex flex-col p-6 z-10 border-l overflow-y-auto \${darkMode ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-gray-200'} backdrop-blur-md transition-all shadow-xl`}>
+                        ${selectedNode && html`
+                            <aside className=${`w-80 flex flex-col p-6 z-10 border-l overflow-y-auto ${darkMode ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white/90 border-gray-200 text-slate-800'} backdrop-blur-md transition-all shadow-xl`}>
                                 <div className="flex justify-between items-center mb-6 border-b pb-4 ${darkMode ? 'border-slate-700' : 'border-gray-200'}">
                                     <h2 className="font-bold text-lg">Properties</h2>
                                     <button onClick=${() => setSelectedNodeId(null)} className="opacity-50 hover:opacity-100 p-1 hover:bg-red-500/20 rounded">✕</button>
                                 </div>
                                 
-                                <div className="mb-6 p-3 rounded bg-opacity-10 ${darkMode ? 'bg-blue-500' : 'bg-blue-100'}">
+                                <div className=${`mb-6 p-3 rounded bg-opacity-10 ${darkMode ? 'bg-blue-500' : 'bg-blue-100'}`}>
                                     <label className="text-xs uppercase font-bold opacity-70 block mb-1">Layer Type</label>
-                                    <div className="font-mono text-lg font-semibold text-blue-400">${selectedNode.data.layerType}</div>
+                                    <div className=${`font-mono text-lg font-semibold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>${selectedNode.data.layerType}</div>
+                                    ${selectedNode.data.description && html`
+                                        <div className="mt-2 text-xs opacity-80 border-t pt-2 border-current opacity-50">
+                                            ${selectedNode.data.description}
+                                        </div>
+                                    `}
                                 </div>
 
                                 <div className="space-y-4">
@@ -307,7 +404,7 @@
                                             type="text" 
                                             value=${value} 
                                             onInput=${(e) => updateNodeParams(key, e.target.value)}
-                                            className=${`w-full p-2.5 rounded text-sm border focus:ring-2 focus:ring-blue-500 outline-none transition font-mono \${darkMode ? 'bg-slate-900 border-slate-600 focus:border-blue-500' : 'bg-gray-50 border-gray-300 focus:border-blue-400'}`}
+                                            className=${`w-full p-2.5 rounded text-sm border focus:ring-2 focus:ring-blue-500 outline-none transition font-mono font-medium ${darkMode ? 'bg-slate-900 border-slate-600 focus:border-blue-500 text-blue-300' : 'bg-white border-gray-300 focus:border-blue-400 text-blue-700'}`}
                                         />
                                     </div>
                                 `)}
@@ -320,18 +417,56 @@
                             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-10" onClick=${(e) => {
                         if (e.target === e.currentTarget) setGeneratedCode("");
                     }}>
-                                <div className=${`w-full max-w-4xl max-h-full overflow-hidden rounded-xl shadow-2xl flex flex-col transform transition-all scale-100 \${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-gray-200'}`}>
-                                    <div className=${`flex justify-between items-center p-4 border-b shrink-0 \${darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-gray-50'}`}>
+                                <div className=${`w-full max-w-4xl max-h-full overflow-hidden rounded-xl shadow-2xl flex flex-col transform transition-all scale-100 ${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-gray-200'}`}>
+                                    <div className=${`flex justify-between items-center p-4 border-b shrink-0 ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-gray-50'}`}>
                                         <h2 className="font-bold text-lg text-green-500 flex items-center">
                                             <span className="mr-2 text-xl">🐍</span> Generated PyTorch Code
                                         </h2>
                                         <button onClick=${() => setGeneratedCode("")} className="px-3 py-1 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded transition font-medium">Close</button>
                                     </div>
                                     <div className="relative flex-1 overflow-auto bg-black/30">
-                                        <pre className=${`p-6 font-mono text-sm leading-relaxed \${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>${generatedCode}</pre>
+                                        <pre className=${`p-6 font-mono text-sm leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>${generatedCode}</pre>
                                     </div>
-                                    <div className=${`p-3 text-xs text-center opacity-50 border-t \${darkMode ? 'border-slate-800' : 'border-gray-100'}`}>
+                                    <div className=${`p-3 text-xs text-center opacity-50 border-t ${darkMode ? 'border-slate-800' : 'border-gray-100'}`}>
                                         Generated by Visual PyTorch Backend
+                                    </div>
+                                </div>
+                            </div>
+                        `}
+                        <!-- Examples Modal -->
+                        ${showExamplesModal && html`
+                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-10" onClick=${(e) => {
+                        if (e.target === e.currentTarget) setShowExamplesModal(false);
+                    }}>
+                                <div className=${`w-full max-w-2xl max-h-full overflow-hidden rounded-xl shadow-2xl flex flex-col transform transition-all scale-100 ${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-gray-200'}`}>
+                                    <div className=${`flex justify-between items-center p-4 border-b shrink-0 ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-gray-50'}`}>
+                                        <h2 className="font-bold text-lg flex items-center">
+                                            <span className="mr-2 text-xl">📂</span> Load Example Template
+                                        </h2>
+                                        <button onClick=${() => setShowExamplesModal(false)} className="px-3 py-1 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded transition font-medium">Close</button>
+                                    </div>
+                                    <div className="p-6 overflow-y-auto">
+                                        <div className="grid grid-cols-1 gap-4">
+                                            ${Object.entries(TEMPLATES).map(([name, template]) => html`
+                                                <div className=${`p-4 rounded-lg border transition-all hover:shadow-md ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400'}`}>
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <h3 className="font-bold text-lg mb-1 text-blue-500">${name}</h3>
+                                                            <p className=${`text-sm opacity-70 mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>${template.description}</p>
+                                                            <div className="flex gap-2">
+                                                                <span className=${`text-xs px-2 py-1 rounded ${darkMode ? 'bg-slate-700' : 'bg-gray-100'}`}>${template.nodes.length} Nodes</span>
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick=${() => loadTemplate(name)}
+                                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition"
+                                                        >
+                                                            Load
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            `)}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
