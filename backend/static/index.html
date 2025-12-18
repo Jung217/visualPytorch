@@ -101,6 +101,11 @@
                 { type: 'nn.Tanh', label: 'Tanh', description: 'Applies the Hyperbolic Tangent (Tanh) function.', params: {} },
                 { type: 'nn.Softmax', label: 'Softmax', description: 'Applies the Softmax function.', params: { dim: 1 } },
             ],
+            "Recurrent Layers": [
+                { type: 'nn.RNN', label: 'RNN', description: 'Elman RNN with tanh or relu.', params: { input_size: 10, hidden_size: 20, num_layers: 1, batch_first: 'True' } },
+                { type: 'nn.LSTM', label: 'LSTM', description: 'Long Short-Term Memory.', params: { input_size: 10, hidden_size: 20, num_layers: 1, batch_first: 'True', bidirectional: 'False' } },
+                { type: 'nn.GRU', label: 'GRU', description: 'Gated Recurrent Unit.', params: { input_size: 10, hidden_size: 20, num_layers: 1, batch_first: 'True', bidirectional: 'False' } },
+            ],
             "Utilities": [
                 { type: 'nn.Flatten', label: 'Flatten', description: 'Flattens a contiguous range of dims.', params: { start_dim: 1, end_dim: -1 } },
             ]
@@ -125,6 +130,20 @@
                     { id: 'e4-5', source: 't4', target: 't5' },
                     { id: 'e5-6', source: 't5', target: 't6' },
                     { id: 'e6-7', source: 't6', target: 't7' }
+                ]
+            },
+            "Simple LSTM": {
+                description: "A simple LSTM network for sequence classification.",
+                nodes: [
+                    { id: 'l1', type: 'input', data: { label: 'Input', layerType: 'input', description: 'Sequence Input.', params: { label: 'Input', shape: '(B, Seq_Len, Input_Size)' } }, position: { x: 250, y: 50 } },
+                    { id: 'l2', type: 'nn.LSTM', data: { label: 'LSTM', layerType: 'nn.LSTM', description: 'LSTM Layer.', params: { input_size: 10, hidden_size: 32, num_layers: 2, batch_first: 'True', bidirectional: 'False' } }, position: { x: 250, y: 150 } },
+                    { id: 'l3', type: 'nn.Linear', data: { label: 'Linear', layerType: 'nn.Linear', description: 'Classifier.', params: { in_features: 32, out_features: 2 } }, position: { x: 250, y: 250 } },
+                    { id: 'l4', type: 'output', data: { label: 'Output', layerType: 'output', description: 'Output Class.', params: { label: 'Output' } }, position: { x: 250, y: 350 } }
+                ],
+                edges: [
+                    { id: 'le1-2', source: 'l1', target: 'l2' },
+                    { id: 'le2-3', source: 'l2', target: 'l3' },
+                    { id: 'le3-4', source: 'l3', target: 'l4' }
                 ]
             }
         };

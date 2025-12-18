@@ -62,7 +62,8 @@ def generate_pytorch_code(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any
         'nn.Embedding',
         'nn.Transformer', 
         'nn.TransformerEncoderLayer', 
-        'nn.TransformerDecoderLayer'
+        'nn.TransformerDecoderLayer',
+        'nn.RNN', 'nn.LSTM', 'nn.GRU'
     }
     
     for i, node in enumerate(sorted_nodes):
@@ -78,6 +79,18 @@ def generate_pytorch_code(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any
         if n_type == 'input' or 'Input' in n_data.get('label', ''):
             var_map[n_id] = "x"
             continue
+
+        if n_type == 'output' or 'Output' in n_data.get('label', ''):
+             # Just map input of output node to output logic
+             # In topological sort, previous node out is input to this.
+             # We don't generate a layer for Output.
+             # But we need to make sure the return value uses the source feeding into this output.
+             incoming = [e['source'] for e in edges if e['target'] == n_id]
+             if incoming:
+                 var_map[n_id] = var_map.get(incoming[0], "x")
+             else:
+                 var_map[n_id] = "x"
+             continue
             
         # Define layer in __init__
         if n_type in known_types:
@@ -104,13 +117,20 @@ def generate_pytorch_code(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any
             
         var_map[n_id] = f"out_{safe_id}"
         
-        # Handle Flatten specially if needed, but nn.Flatten is a module, so it works same way
-        forward_lines.append(f"        {var_map[n_id]} = self.{layer_name}({input_var})")
+        # RNN/LSTM/GRU return (output, (h_n, c_n)) - we usually just want output for next layers in simple sequential models
+        if n_type in ['nn.RNN', 'nn.LSTM', 'nn.GRU']:
+             forward_lines.append(f"        {var_map[n_id]}, _ = self.{layer_name}({input_var})")
+             # Assuming batch_first=True, output is (N, L, D). 
+             # If next layer is Linear, we might need to take last step or flatten.
+             # For this simple example, we'll let user Flatten or use slicing. 
+             # But the assignment must unpack the tuple.
+        else:
+             forward_lines.append(f"        {var_map[n_id]} = self.{layer_name}({input_var})")
 
     # Combine
     if not init_lines:
         init_lines.append("        pass")
         
-    full_code = imports + class_def + "\n".join(init_lines) + "\n\n" + "\n".join(forward_lines) + f"        return {var_map.get(sorted_nodes[-1]['id'], 'x')}\n"
+    full_code = imports + class_def + "\n".join(init_lines) + "\n\n" + "\n".join(forward_lines) + "\n" + f"        return {var_map.get(sorted_nodes[-1]['id'], 'x')}\n"
     
     return full_code
