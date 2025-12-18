@@ -132,6 +132,20 @@
                     { id: 'e6-7', source: 't6', target: 't7' }
                 ]
             },
+            "Simple RNN": {
+                description: "A basic Recurrent Neural Network (Vanilla RNN).",
+                nodes: [
+                    { id: 'r1', type: 'input', data: { label: 'Input', layerType: 'input', description: 'Sequence Input.', params: { label: 'Input', shape: '(B, Seq_Len, Input_Size)' } }, position: { x: 250, y: 50 } },
+                    { id: 'r2', type: 'nn.RNN', data: { label: 'RNN', layerType: 'nn.RNN', description: 'Vanilla RNN Layer.', params: { input_size: 10, hidden_size: 32, num_layers: 1, batch_first: 'True' } }, position: { x: 250, y: 150 } },
+                    { id: 'r3', type: 'nn.Linear', data: { label: 'Linear', layerType: 'nn.Linear', description: 'Classifier.', params: { in_features: 32, out_features: 2 } }, position: { x: 250, y: 250 } },
+                    { id: 'r4', type: 'output', data: { label: 'Output', layerType: 'output', description: 'Output Class.', params: { label: 'Output' } }, position: { x: 250, y: 350 } }
+                ],
+                edges: [
+                    { id: 're1-2', source: 'r1', target: 'r2' },
+                    { id: 're2-3', source: 'r2', target: 'r3' },
+                    { id: 're3-4', source: 'r3', target: 'r4' }
+                ]
+            },
             "Simple LSTM": {
                 description: "A simple LSTM network for sequence classification.",
                 nodes: [
