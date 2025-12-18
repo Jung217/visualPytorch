@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual PyTorch Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/style.min.css" rel="stylesheet">
+
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0",
+                "react-dom": "https://esm.sh/react-dom@18.2.0",
+                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                "reactflow": "https://esm.sh/reactflow@11.10.1?external=react,react-dom",
+                "htm": "https://esm.sh/htm@3.1.1"
+            }
+        }
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: white;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .react-flow__node {
+            background: #1e293b;
+            color: white;
+            border: 1px solid #475569;
+            border-radius: 8px;
+        }
+
+        .react-flow__handle {
+            background: #3b82f6;
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white transition-colors duration-300">
+    <div id="root"></div>
+
+    <script type="module">
+        import { useState, useCallback, createElement, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import ReactFlow, { ReactFlowProvider, addEdge, useNodesState, useEdgesState, Background, Controls } from 'reactflow';
+        import htm from 'htm';
+
+        const html = htm.bind(createElement);
+
+        // --- Constants & Data ---
+        const LAYER_DEFINITIONS = {
+            "Convolution & Pooling": [
+                { type: 'nn.Conv2d', label: 'Conv2d', params: { in_channels: 1, out_channels: 32, kernel_size: 3, padding: 1 } },
+                { type: 'nn.MaxPool2d', label: 'MaxPool2d', params: { kernel_size: 2, stride: 2 } },
+                { type: 'nn.AvgPool2d', label: 'AvgPool2d', params: { kernel_size: 2, stride: 2 } },
+            ],
+            "Linear & Normalization": [
+                { type: 'nn.Linear', label: 'Linear', params: { in_features: 32, out_features: 10 } },
+                { type: 'nn.BatchNorm2d', label: 'BatchNorm2d', params: { num_features: 32 } },
+                { type: 'nn.LayerNorm', label: 'LayerNorm', params: { normalized_shape: 512 } },
+                { type: 'nn.Dropout', label: 'Dropout', params: { p: 0.5 } },
+            ],
+            "Transformers": [
+                { type: 'nn.Embedding', label: 'Embedding', params: { num_embeddings: 1000, embedding_dim: 512 } },
+                { type: 'nn.TransformerEncoderLayer', label: 'TransformerEncoderLayer', params: { d_model: 512, nhead: 8, dim_feedforward: 2048 } },
+                { type: 'nn.TransformerDecoderLayer', label: 'TransformerDecoderLayer', params: { d_model: 512, nhead: 8, dim_feedforward: 2048 } },
+                { type: 'nn.Transformer', label: 'Transformer', params: { d_model: 512, nhead: 8, num_encoder_layers: 6, num_decoder_layers: 6 } },
+            ],
+            "Activations": [
+                { type: 'nn.ReLU', label: 'ReLU', params: {} },
+                { type: 'nn.Sigmoid', label: 'Sigmoid', params: {} },
+                { type: 'nn.Tanh', label: 'Tanh', params: {} },
+                { type: 'nn.Softmax', label: 'Softmax', params: { dim: 1 } },
+            ],
+            "Utilities": [
+                { type: 'nn.Flatten', label: 'Flatten', params: { start_dim: 1, end_dim: -1 } },
+            ]
+        };
+
+        let id = 0;
+        const getId = () => `dndnode_${id++}`;
+
+        const initialNodes = [
+            { id: '1', type: 'input', data: { label: 'Input (B, C, H, W)' }, position: { x: 250, y: 5 } },
+        ];
+
+        function App() {
+            const reactFlowWrapper = useRef(null);
+            const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+            const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+            const [reactFlowInstance, setReactFlowInstance] = useState(null);
+            const [generatedCode, setGeneratedCode] = useState("");
+
+            // New State for V2
+            const [selectedNodeId, setSelectedNodeId] = useState(null);
+            const [darkMode, setDarkMode] = useState(true);
+
+            // Toggle Dark Mode
+            const toggleTheme = () => {
+                setDarkMode((prev) => {
+                    const newMode = !prev;
+                    if (!newMode) {
+                        document.documentElement.classList.remove('dark');
+                        document.body.classList.remove('bg-gray-900', 'text-white');
+                        document.body.classList.add('bg-gray-100', 'text-gray-900');
+                    } else {
+                        document.documentElement.classList.add('dark');
+                        document.body.classList.add('bg-gray-900', 'text-white');
+                        document.body.classList.remove('bg-gray-100', 'text-gray-900');
+                    }
+                    return newMode;
+                });
+            };
+
+            const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
+
+            // Handle Selection
+            const onNodeClick = useCallback((event, node) => {
+                setSelectedNodeId(node.id);
+            }, []);
+
+            const onPaneClick = useCallback(() => {
+                setSelectedNodeId(null);
+            }, []);
+
+            const onDragOver = useCallback((event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+            }, []);
+
+            const onDrop = useCallback(
+                (event) => {
+                    event.preventDefault();
+
+                    const dataString = event.dataTransfer.getData('application/reactflow');
+                    if (!dataString) return;
+
+                    const typeData = JSON.parse(dataString);
+
+                    const position = reactFlowInstance.screenToFlowPosition({
+                        x: event.clientX,
+                        y: event.clientY,
+                    });
+
+                    const newNode = {
+                        id: getId(),
+                        type: 'default',
+                        position,
+                        data: {
+                            label: typeData.label,
+                            layerType: typeData.type,
+                            params: { ...typeData.params } // Clone params
+                        }
+                    };
+
+                    setNodes((nds) => nds.concat(newNode));
+                },
+                [reactFlowInstance]
+            );
+
+            // Update parameters of selected node
+            const updateNodeParams = (key, value) => {
+                setNodes((nds) =>
+                    nds.map((node) => {
+                        if (node.id === selectedNodeId) {
+                            const newParams = { ...node.data.params, [key]: value };
+                            return {
+                                ...node,
+                                data: {
+                                    ...node.data,
+                                    params: newParams
+                                },
+                            };
+                        }
+                        return node;
+                    })
+                );
+            };
+
+            const generateCode = async () => {
+                try {
+                    const response = await fetch('/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nodes, edges })
+                    });
+                    const data = await response.json();
+                    setGeneratedCode(data.code);
+                } catch (error) {
+                    console.error("Error generating code:", error);
+                    setGeneratedCode(`Error: ${error.message}`);
+                }
+            };
+
+            const selectedNode = nodes.find((n) => n.id === selectedNodeId);
+
+            return html`
+                <div className=${`flex h-screen w-screen overflow-hidden transition-colors duration-300 \${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                    <${ReactFlowProvider}>
+                        <!-- Left Sidebar: Components -->
+                        <aside className=${`w-64 flex flex-col p-4 z-10 border-r \${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-gray-200'} backdrop-blur-md transition-colors duration-300`}>
+                            <div className="flex justify-between items-center mb-6">
+                                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">Visual PyTorch</h1>
+                                <button onClick=${toggleTheme} className="p-2 rounded hover:bg-gray-500/20 text-xl" title="Toggle Theme">
+                                    ${darkMode ? '☀️' : '🌙'}
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto pr-2 pb-20">
+                                ${Object.entries(LAYER_DEFINITIONS).map(([category, layers]) => html`
+                                    <div className="mb-6">
+                                        <h3 className="text-xs font-bold uppercase tracking-wider mb-3 opacity-50 border-b pb-1 border-opacity-20 border-white">${category}</h3>
+                                        <div className="grid grid-cols-1 gap-2">
+                                        ${layers.map(layer => html`
+                                            <div 
+                                                className=${`px-3 py-2 rounded cursor-grab transition border text-sm font-medium flex items-center shadow-sm \${darkMode ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-200'}`} 
+                                                draggable=${true}
+                                                onDragStart=${(event) => event.dataTransfer.setData('application/reactflow', JSON.stringify(layer))}
+                                            >
+                                                <div className=${`w-2 h-2 rounded-full mr-2 \${darkMode ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
+                                                ${layer.label}
+                                            </div>
+                                        `)}
+                                        </div>
+                                    </div>
+                                `)}
+                            </div>
+                            
+                            <button 
+                                onClick=${generateCode}
+                                className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition shadow-lg shadow-blue-500/30 active:scale-95"
+                            >
+                                Generate Code
+                            </button>
+                        </aside>
+
+                        <!-- Center: Canvas -->
+                        <div className="flex-grow h-full relative" ref=${reactFlowWrapper}>
+                            <${ReactFlow}
+                                nodes=${nodes}
+                                edges=${edges}
+                                onNodesChange=${onNodesChange}
+                                onEdgesChange=${onEdgesChange}
+                                onConnect=${onConnect}
+                                onNodeClick=${onNodeClick}
+                                onPaneClick=${onPaneClick}
+                                onInit=${setReactFlowInstance}
+                                onDrop=${onDrop}
+                                onDragOver=${onDragOver}
+                                fitView
+                                className=${darkMode ? 'bg-slate-900' : 'bg-gray-50'}
+                            >
+                                <${Background} color=${darkMode ? '#334155' : '#cbd5e1'} gap=${16} />
+                                <${Controls} className=${darkMode ? 'bg-slate-800 text-white border-slate-700' : 'bg-white text-gray-900 border-gray-200'} />
+                            </${ReactFlow}>
+                        </div>
+                        
+                        <!-- Right Sidebar: Properties -->
+                        ${selectedNode && selectedNode.type !== 'input' && html`
+                            <aside className=${`w-80 flex flex-col p-6 z-10 border-l overflow-y-auto \${darkMode ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-gray-200'} backdrop-blur-md transition-all shadow-xl`}>
+                                <div className="flex justify-between items-center mb-6 border-b pb-4 ${darkMode ? 'border-slate-700' : 'border-gray-200'}">
+                                    <h2 className="font-bold text-lg">Properties</h2>
+                                    <button onClick=${() => setSelectedNodeId(null)} className="opacity-50 hover:opacity-100 p-1 hover:bg-red-500/20 rounded">✕</button>
+                                </div>
+                                
+                                <div className="mb-6 p-3 rounded bg-opacity-10 ${darkMode ? 'bg-blue-500' : 'bg-blue-100'}">
+                                    <label className="text-xs uppercase font-bold opacity-70 block mb-1">Layer Type</label>
+                                    <div className="font-mono text-lg font-semibold text-blue-400">${selectedNode.data.layerType}</div>
+                                </div>
+
+                                <div className="space-y-4">
+                                ${selectedNode.data.params && Object.entries(selectedNode.data.params).map(([key, value]) => html`
+                                    <div>
+                                        <label className="text-xs font-bold block mb-1.5 opacity-70 ml-1">${key}</label>
+                                        <input 
+                                            type="text" 
+                                            value=${value} 
+                                            onInput=${(e) => updateNodeParams(key, e.target.value)}
+                                            className=${`w-full p-2.5 rounded text-sm border focus:ring-2 focus:ring-blue-500 outline-none transition font-mono \${darkMode ? 'bg-slate-900 border-slate-600 focus:border-blue-500' : 'bg-gray-50 border-gray-300 focus:border-blue-400'}`}
+                                        />
+                                    </div>
+                                `)}
+                                </div>
+                            </aside>
+                        `}
+
+                        <!-- Code Preview Overlay -->
+                        ${generatedCode && html`
+                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-10" onClick=${(e) => {
+                        if (e.target === e.currentTarget) setGeneratedCode("");
+                    }}>
+                                <div className=${`w-full max-w-4xl max-h-full overflow-hidden rounded-xl shadow-2xl flex flex-col transform transition-all scale-100 \${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-gray-200'}`}>
+                                    <div className=${`flex justify-between items-center p-4 border-b shrink-0 \${darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-gray-50'}`}>
+                                        <h2 className="font-bold text-lg text-green-500 flex items-center">
+                                            <span className="mr-2 text-xl">🐍</span> Generated PyTorch Code
+                                        </h2>
+                                        <button onClick=${() => setGeneratedCode("")} className="px-3 py-1 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded transition font-medium">Close</button>
+                                    </div>
+                                    <div className="relative flex-1 overflow-auto bg-black/30">
+                                        <pre className=${`p-6 font-mono text-sm leading-relaxed \${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>${generatedCode}</pre>
+                                    </div>
+                                    <div className=${`p-3 text-xs text-center opacity-50 border-t \${darkMode ? 'border-slate-800' : 'border-gray-100'}`}>
+                                        Generated by Visual PyTorch Backend
+                                    </div>
+                                </div>
+                            </div>
+                        `}
+                    </${ReactFlowProvider}>
+                </div>
+            `;
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(html`<${App} />`);
+    </script>
+</body>
+
+</html>
