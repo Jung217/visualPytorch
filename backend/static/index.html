@@ -201,6 +201,24 @@
                     { id: 'de4-5', source: 'd4', target: 'd5' },
                     { id: 'de5-6', source: 'd5', target: 'd6' }
                 ]
+            },
+            "Simple Transformer": {
+                description: "Transformer Encoder (BERT-like) for sequence classification.",
+                nodes: [
+                    { id: 'tr1', type: 'input', data: { label: 'Input IDs', layerType: 'input', description: 'Token Indices.', params: { label: 'Input', shape: '(B, Seq_Len)' } }, position: { x: 250, y: 50 } },
+                    { id: 'tr2', type: 'nn.Embedding', data: { label: 'Embedding', layerType: 'nn.Embedding', description: 'Token Embeddings.', params: { num_embeddings: 1000, embedding_dim: 128 } }, position: { x: 250, y: 150 } },
+                    { id: 'tr3', type: 'nn.TransformerEncoderLayer', data: { label: 'Encoder Layer 1', layerType: 'nn.TransformerEncoderLayer', description: 'Self-Attention Block.', params: { d_model: 128, nhead: 4, dim_feedforward: 512 } }, position: { x: 250, y: 250 } },
+                    { id: 'tr4', type: 'nn.TransformerEncoderLayer', data: { label: 'Encoder Layer 2', layerType: 'nn.TransformerEncoderLayer', description: 'Self-Attention Block.', params: { d_model: 128, nhead: 4, dim_feedforward: 512 } }, position: { x: 250, y: 350 } },
+                    { id: 'tr5', type: 'nn.Linear', data: { label: 'Classifier', layerType: 'nn.Linear', description: 'Final Projection.', params: { in_features: 128, out_features: 2 } }, position: { x: 250, y: 450 } },
+                    { id: 'tr6', type: 'output', data: { label: 'Output', layerType: 'output', description: 'Logits.', params: { label: 'Output' } }, position: { x: 250, y: 550 } }
+                ],
+                edges: [
+                    { id: 'tre1-2', source: 'tr1', target: 'tr2' },
+                    { id: 'tre2-3', source: 'tr2', target: 'tr3' },
+                    { id: 'tre3-4', source: 'tr3', target: 'tr4' },
+                    { id: 'tre4-5', source: 'tr4', target: 'tr5' },
+                    { id: 'tre5-6', source: 'tr5', target: 'tr6' }
+                ]
             }
         };
 
