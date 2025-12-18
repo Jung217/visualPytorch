@@ -80,6 +80,7 @@
             ],
             "Convolution & Pooling": [
                 { type: 'nn.Conv2d', label: 'Conv2d', description: '2D Convolutional layer.', params: { in_channels: 1, out_channels: 32, kernel_size: 3, padding: 1 } },
+                { type: 'nn.ConvTranspose2d', label: 'ConvTranspose2d', description: 'Transposed 2D Convolution (Deconvolution).', params: { in_channels: 100, out_channels: 32, kernel_size: 4, stride: 2, padding: 1 } },
                 { type: 'nn.MaxPool2d', label: 'MaxPool2d', description: '2D Max pooling layer.', params: { kernel_size: 2, stride: 2 } },
                 { type: 'nn.AvgPool2d', label: 'AvgPool2d', description: '2D Average pooling layer.', params: { kernel_size: 2, stride: 2 } },
             ],
@@ -97,6 +98,7 @@
             ],
             "Activations": [
                 { type: 'nn.ReLU', label: 'ReLU', description: 'Applies the rectified linear unit function.', params: {} },
+                { type: 'nn.LeakyReLU', label: 'LeakyReLU', description: 'Applies Leaky ReLU.', params: { negative_slope: 0.2 } },
                 { type: 'nn.Sigmoid', label: 'Sigmoid', description: 'Applies the element-wise function sigmoid(x).', params: {} },
                 { type: 'nn.Tanh', label: 'Tanh', description: 'Applies the Hyperbolic Tangent (Tanh) function.', params: {} },
                 { type: 'nn.Softmax', label: 'Softmax', description: 'Applies the Softmax function.', params: { dim: 1 } },
@@ -158,6 +160,46 @@
                     { id: 'le1-2', source: 'l1', target: 'l2' },
                     { id: 'le2-3', source: 'l2', target: 'l3' },
                     { id: 'le3-4', source: 'l3', target: 'l4' }
+                ]
+            },
+            "DCGAN Generator": {
+                description: "Deep Convolutional GAN Generator (Latent -> Image).",
+                nodes: [
+                    { id: 'g1', type: 'input', data: { label: 'Z Vector', layerType: 'input', description: 'Latent z-vector.', params: { label: 'Z', shape: '(B, 100, 1, 1)' } }, position: { x: 250, y: 50 } },
+                    { id: 'g2', type: 'nn.ConvTranspose2d', data: { label: 'ConvT 1', layerType: 'nn.ConvTranspose2d', description: 'Upsample 1.', params: { in_channels: 100, out_channels: 256, kernel_size: 4, stride: 1, padding: 0 } }, position: { x: 250, y: 150 } },
+                    { id: 'g3', type: 'nn.ReLU', data: { label: 'ReLU', layerType: 'nn.ReLU', description: 'Activation.', params: {} }, position: { x: 250, y: 250 } },
+                    { id: 'g4', type: 'nn.ConvTranspose2d', data: { label: 'ConvT 2', layerType: 'nn.ConvTranspose2d', description: 'Upsample 2.', params: { in_channels: 256, out_channels: 128, kernel_size: 4, stride: 2, padding: 1 } }, position: { x: 250, y: 350 } },
+                    { id: 'g5', type: 'nn.ReLU', data: { label: 'ReLU', layerType: 'nn.ReLU', description: 'Activation.', params: {} }, position: { x: 250, y: 450 } },
+                    { id: 'g6', type: 'nn.ConvTranspose2d', data: { label: 'ConvT 3', layerType: 'nn.ConvTranspose2d', description: 'Upsample 3 to Image.', params: { in_channels: 128, out_channels: 3, kernel_size: 4, stride: 2, padding: 1 } }, position: { x: 250, y: 550 } },
+                    { id: 'g7', type: 'nn.Tanh', data: { label: 'Tanh', layerType: 'nn.Tanh', description: 'Output Activation.', params: {} }, position: { x: 250, y: 650 } },
+                    { id: 'g8', type: 'output', data: { label: 'Image Output', layerType: 'output', description: 'Generated Image.', params: { label: 'Output' } }, position: { x: 250, y: 750 } }
+                ],
+                edges: [
+                    { id: 'ge1-2', source: 'g1', target: 'g2' },
+                    { id: 'ge2-3', source: 'g2', target: 'g3' },
+                    { id: 'ge3-4', source: 'g3', target: 'g4' },
+                    { id: 'ge4-5', source: 'g4', target: 'g5' },
+                    { id: 'ge5-6', source: 'g5', target: 'g6' },
+                    { id: 'ge6-7', source: 'g6', target: 'g7' },
+                    { id: 'ge7-8', source: 'g7', target: 'g8' }
+                ]
+            },
+            "DCGAN Discriminator": {
+                description: "Deep Convolutional GAN Discriminator (Image -> Real/Fake).",
+                nodes: [
+                    { id: 'd1', type: 'input', data: { label: 'Image Input', layerType: 'input', description: 'Real or Fake Image.', params: { label: 'Image', shape: '(B, 3, 64, 64)' } }, position: { x: 250, y: 50 } },
+                    { id: 'd2', type: 'nn.Conv2d', data: { label: 'Conv 1', layerType: 'nn.Conv2d', description: 'Downsample 1.', params: { in_channels: 3, out_channels: 64, kernel_size: 4, stride: 2, padding: 1 } }, position: { x: 250, y: 150 } },
+                    { id: 'd3', type: 'nn.LeakyReLU', data: { label: 'LeakyReLU', layerType: 'nn.LeakyReLU', description: 'Activation.', params: { negative_slope: 0.2 } }, position: { x: 250, y: 250 } },
+                    { id: 'd4', type: 'nn.Conv2d', data: { label: 'Conv 2', layerType: 'nn.Conv2d', description: 'Downsample 2.', params: { in_channels: 64, out_channels: 128, kernel_size: 4, stride: 2, padding: 1 } }, position: { x: 250, y: 350 } },
+                    { id: 'd5', type: 'nn.LeakyReLU', data: { label: 'LeakyReLU', layerType: 'nn.LeakyReLU', description: 'Activation.', params: { negative_slope: 0.2 } }, position: { x: 250, y: 450 } },
+                    { id: 'd6', type: 'output', data: { label: 'Prob Output', layerType: 'output', description: 'Probability.', params: { label: 'Output' } }, position: { x: 250, y: 550 } }
+                ],
+                edges: [
+                    { id: 'de1-2', source: 'd1', target: 'd2' },
+                    { id: 'de2-3', source: 'd2', target: 'd3' },
+                    { id: 'de3-4', source: 'd3', target: 'd4' },
+                    { id: 'de4-5', source: 'd4', target: 'd5' },
+                    { id: 'de5-6', source: 'd5', target: 'd6' }
                 ]
             }
         };

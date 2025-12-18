@@ -63,7 +63,8 @@ def generate_pytorch_code(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any
         'nn.Transformer', 
         'nn.TransformerEncoderLayer', 
         'nn.TransformerDecoderLayer',
-        'nn.RNN', 'nn.LSTM', 'nn.GRU'
+        'nn.RNN', 'nn.LSTM', 'nn.GRU',
+        'nn.ConvTranspose2d', 'nn.LeakyReLU'
     }
     
     for i, node in enumerate(sorted_nodes):
